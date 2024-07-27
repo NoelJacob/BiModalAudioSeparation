@@ -6,7 +6,7 @@ import argparse
 class ArgParser(object):
     def __init__(self):
         parser = argparse.ArgumentParser()
-        
+
         # Model related arguments
         parser.add_argument('--id', default='',
                             help="a name for identifying the model")
@@ -32,13 +32,13 @@ class ArgParser(object):
                             help="train or test")
 
         # Data related arguments
-        parser.add_argument('--batch_size', default=32, type=int,
+        parser.add_argument('--batch_size', default=16, type=int,
                             help='input batch size')
-        parser.add_argument('--workers', default=16, type=int,
+        parser.add_argument('--workers', default=4, type=int,
                             help='number of data loading workers')
-        parser.add_argument('--audLen', default=65535, type=int,
+        parser.add_argument('--audLen', default=131070, type=int,
                             help='sound length')
-        parser.add_argument('--audRate', default=11025, type=int,
+        parser.add_argument('--audRate', default=16000, type=int,
                             help='sound sampling rate')
         parser.add_argument('--stft_frame', default=1022, type=int,
                             help="stft frame length")
@@ -62,7 +62,7 @@ class ArgParser(object):
                             help='location of all parsed phrases of data captions')
         parser.add_argument('--audio_dir', default='./data/audiocaps/audio_16k',
                             help='location of all audio files')
-        parser.add_argument('--samples_dir', default='./samples',
+        parser.add_argument('--samples_dir', default='./demo_samples',
                             help='location of all audio samples for demo')
 
         self.parser = parser
@@ -91,16 +91,16 @@ class ArgParser(object):
         parser.add_argument('--recons_weight', default=5, type=int,
                             help='reconstruction loss weight')
         # optimization related arguments
-        parser.add_argument('--num_epoch', default=100, type=int,
+        parser.add_argument('--num_epoch', default=200, type=int,
                             help='epochs to train for')
         parser.add_argument('--start_epoch', default=1, type=int,
                             help='epochs to start training for')
 
         parser.add_argument('--lr',
-                            default=1e-3, type=float, help='LR')
+                            default=1e-4, type=float, help='LR')
 
         parser.add_argument('--lr_step',
-                            default=30, type=int,
+                            default=15, type=int,
                             help='steps to drop LR in epochs')
         parser.add_argument('--beta1', default=0.9, type=float,
                             help='momentum for sgd, beta1 for adam')
@@ -110,28 +110,26 @@ class ArgParser(object):
         parser.add_argument('--aug_rate',
                             default=0.0, type=float, help='augmentation rate')
         parser.add_argument('--maxN', default=4, type=int,
-                            help='maximum number of audios for mixture')                            
+                            help='maximum number of audios for mixture')
 
-        parser.add_argument('--num_downs', default=4, type=int,
-                            help='num of downs in unet') 
-        parser.add_argument('--num_res_layers', default=2, type=int,
-                            help='num of res layers in unet') 
+        parser.add_argument('--num_downs', default=7, type=int,
+                            help='num of downs in unet')
+        parser.add_argument('--num_res_layers', default=1, type=int,
+                            help='num of res layers in unet')
         parser.add_argument('--num_head', default=8, type=int,
-                            help='num of heads in attention units')                            
+                            help='num of heads in attention units')
         parser.add_argument('--num_cond_blocks', default=1, type=int,
-                            help='number of attention blocks')                            
-        parser.add_argument('--cond_dim', default=512, type=int,
-                            help='conditional feature dimension')                            
-        parser.add_argument('--cond_layer', default='ca',
-                            help="mode for conditioning")        
+                            help='number of attention blocks')
+        parser.add_argument('--cond_dim', default=768, type=int,
+                            help='conditional feature dimension')
+        parser.add_argument('--cond_layer', default='sca',
+                            help="mode for conditioning")
         parser.add_argument('--warmup_epochs', default=5, type=int,
-                            help='num of warmup epochs before distillation')                            
+                            help='num of warmup epochs before distillation')
         parser.add_argument('--ema_rate', default=0.9, type=float,
                             help='rate for ema on distillation')
-        
-        
-        self.parser = parser
 
+        self.parser = parser
 
     def add_mgpu_arguments(self):
         parser = self.parser
@@ -148,16 +146,16 @@ class ArgParser(object):
                             help='GPU id to use.')
         parser.add_argument('--multiprocessing_distributed', action='store_true',
                             help='Use multi-processing distributed training to launch '
-                                'N processes per node, which has N GPUs. This is the '
-                                'fastest way to use PyTorch for either single node or '
-                                'multi node data parallel training')
-        parser.add_argument('--ngpu', default=None, type=int,
+                                 'N processes per node, which has N GPUs. This is the '
+                                 'fastest way to use PyTorch for either single node or '
+                                 'multi node data parallel training')
+        parser.add_argument('--ngpu', default=1, type=int,
                             help='total number of gpus. ')
         parser.add_argument('--num_check', default=4, type=int,
                             help='num of intermediate checkpointing. ')
         parser.add_argument('--resume', default='', type=str, metavar='PATH',
                             help='path to latest checkpoint (default: none)')
-        parser.add_argument('--load', default='', type=str, metavar='PATH',
+        parser.add_argument('--load', default='./pretrained_weights/model_weights.pth.tar', type=str, metavar='PATH',
                             help='path to latest checkpoint (default: none)')
         parser.add_argument('--pretrained', dest='pretrained', action='store_true',
                             help='use pre-trained model')
@@ -171,6 +169,10 @@ class ArgParser(object):
     def parse_train_arguments(self):
         self.add_train_arguments()
         self.add_mgpu_arguments()
-        args = self.parser.parse_args()
+        args = self.parser.parse_args(
+            ["--cond_layer", "sca", "-num_cond_blocks", "1", "--num_res_layers", "1", "--num_head", "8", "--cond_dim",
+             "768", "--num_downs", "7", "--num_channels", "32", "--audLen", "131070", "--audRate", "16000", "--workers",
+             "4", "--multiprocessing_distributed", "--ngpu", "1", "--dist-url", "tcp://localhost:12342",
+             "--samples_dir", "demo_samples", "--load", "pretrained_weights/model_weights.pth.tar"])
         self.print_arguments(args)
         return args
